@@ -159,7 +159,7 @@ class RobosuiteInterface(MG_EnvInterface):
         return action[6:7]
 
     # robosuite-specific helper method for getting object poses
-    def get_object_pose(self, obj_name, obj_type):
+    def get_object_pose(self, obj_name, obj_type, obj_pos_offset=None):
         """
         Returns 4x4 object pose given the name of the object and the type.
 
@@ -180,6 +180,9 @@ class RobosuiteInterface(MG_EnvInterface):
             obj_id = self.env.sim.model.geom_name2id(obj_name)
             obj_pos = np.array(self.env.sim.data.geom_xpos[obj_id])
             obj_rot = np.array(self.env.sim.data.geom_xmat[obj_id].reshape(3, 3))
+            if obj_pos_offset == "bottom":
+                bottom_offset = self.env.sim.model.geom_size[obj_id][2]
+                obj_pos[2] -= bottom_offset
         elif obj_type == "site":
             obj_id = self.env.sim.model.site_name2id(obj_name)
             obj_pos = np.array(self.env.sim.data.site_xpos[obj_id])

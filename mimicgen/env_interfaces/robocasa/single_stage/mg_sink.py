@@ -79,7 +79,7 @@ class MG_TurnSinkSpout(RobosuiteInterface):
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
         return dict(
-            spout=self.get_object_pose(obj_name=self.env.sink.name + "_spout_top", obj_type="geom"),
+            spout=self.get_object_pose(obj_name=self.env.sink.name + "_spout_main", obj_type="geom"),
         )
 
     def get_subtask_term_signals(self):

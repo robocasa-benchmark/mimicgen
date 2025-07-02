@@ -82,8 +82,9 @@ class MG_CoffeePressButton(RobosuiteInterface):
         Returns:
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
+        chosen_button = self.env.rng.choice(self.env.coffee_machine._start_button_names)
         return dict(
-            button=self.get_object_pose(obj_name="{}_{}".format(self.env.coffee_machine.name, "start_button"), obj_type="geom"),
+            button=self.get_object_pose(obj_name="{}_{}".format(self.env.coffee_machine.name, chosen_button), obj_type="geom"),
         )
 
     def get_subtask_term_signals(self):

@@ -100,7 +100,7 @@ class MG_Config(Config):
 
         # settings related to data generation
         self.experiment.generation.path = None                                  # path where new dataset folder will be created
-        self.experiment.generation.guarantee = False                            # whether to keep running data collection until we have @num_trials successful trajectories
+        self.experiment.generation.guarantee = True                            # whether to keep running data collection until we have @num_trials successful trajectories
         self.experiment.generation.keep_failed = True                           # whether to keep failed trajectories as well
         self.experiment.generation.num_trials = 10                              # number of attempts to collect new data
 
@@ -124,12 +124,13 @@ class MG_Config(Config):
         self.experiment.task.gripper = None                 # if provided, override the gripper in env meta to collect data on a different robot gripper from the one in source data
         self.experiment.task.interface = None               # if provided, override the environment interface class to use for this task to use a different one from the one in source data
         self.experiment.task.interface_type = None          # if provided, specify environment interface type (usually one per simulator) to use a different one from the one in source data
+        self.experiment.task.kwargs = dict(layout_ids=-2)
 
         # general settings
         self.experiment.max_num_failures = 50           # maximum number of failure demos to save
         self.experiment.render_video = True             # whether to render some generated demos to video
         self.experiment.num_demo_to_render = 50         # maxumum number of demos to render to video
-        self.experiment.num_fail_demo_to_render = 50    # maxumum number of failure demos to render to video
+        self.experiment.num_fail_demo_to_render = 2    # maxumum number of failure demos to render to video
         self.experiment.log_every_n_attempts = 50       # logs important info every N generation attempts
 
         # random seed for generation

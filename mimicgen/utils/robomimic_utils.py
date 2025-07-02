@@ -43,6 +43,7 @@ def create_env(
     render_offscreen=None, 
     use_image_obs=None, 
     use_depth_obs=None, 
+    seed=None
 ):
     """
     Helper function to create the environment from dataset metadata and arguments.
@@ -93,6 +94,7 @@ def create_env(
         camera_height=camera_height, 
         camera_width=camera_width, 
         reward_shaping=False,
+        seed=seed
         # render=render,
         # render_offscreen=render_offscreen,
         # use_image_obs=use_image_obs,

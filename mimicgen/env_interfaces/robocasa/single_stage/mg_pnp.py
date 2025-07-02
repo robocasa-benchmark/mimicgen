@@ -1,4 +1,5 @@
 from mimicgen.env_interfaces.robosuite import RobosuiteInterface
+from robocasa.models.fixtures import *
 
 class MG_PnPCabToCounter(RobosuiteInterface):
 
@@ -39,9 +40,14 @@ class MG_PnPCounterToCab(RobosuiteInterface):
         Returns:
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
+        if isinstance(self.env.cab, OpenCabinet):
+            cab_ref = "{}_level0_shelf".format(self.env.cab.name)
+        else:
+            cab_ref = "{}_bottom".format(self.env.cab.name)
+
         return dict(
             obj=self.get_object_pose(obj_name=self.env.objects["obj"].root_body, obj_type="body"),
-            cab=self.get_object_pose(obj_name="{}_bottom".format(self.env.cab.name), obj_type="geom"),
+            cab=self.get_object_pose(obj_name=cab_ref, obj_type="geom"),
         )
 
     def get_subtask_term_signals(self):
@@ -70,9 +76,11 @@ class MG_PnPCounterToSink(RobosuiteInterface):
         Returns:
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
+        all_regions = list(self.env.sink.get_reset_regions().keys())
+        chosen_region = self.env.rng.choice(all_regions)
         return dict(
-            obj=self.get_object_pose(obj_name=self.env.objects["obj"].root_body, obj_type="body"),
-            sink=self.get_object_pose(obj_name="{}_{}".format(self.env.sink.name, "bottom"), obj_type="geom"),
+            obj=self.get_object_pose(obj_name=self.env.objects["obj"].root_body, obj_type="body", obj_pos_offset="bottom"),
+            sink=self.get_object_pose(obj_name="{}_reg_{}".format(self.env.sink.name, chosen_region), obj_type="geom"),
         )
 
     def get_subtask_term_signals(self):
