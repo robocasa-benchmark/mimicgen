@@ -14,7 +14,7 @@ class MG_OpenDrawer(RobosuiteInterface):
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
         return dict(
-            handle=self.get_object_pose(obj_name=self.env.drawer.handle_name, obj_type="geom"),
+            handle=self.get_object_pose(obj_name=f"{self.env.drawer.name}_door_handle_reg_main", obj_type="geom"),
         )
 
     def get_subtask_term_signals(self):
@@ -28,9 +28,12 @@ class MG_OpenDrawer(RobosuiteInterface):
             subtask_term_signals (dict): dictionary that maps subtask name to termination flag (0 or 1)
         """
         signals = dict()
+        handle_body = find_elements(self.env.drawer.worldbody, tags="body", attribs={"name": f"{self.env.drawer.naming_prefix}door_handle_main"})
+        drawer_handle_geoms = find_elements(handle_body, tags="geom", return_first=False)
+        drawer_handle_geom_names = [e.get("name") for e in drawer_handle_geoms]
         contact_handle = self.env.check_contact(
             self.env.robots[0].gripper["right"],
-            self.env.drawer.handle_name,
+            drawer_handle_geom_names
         )
         signals["stage_contact_handle"] = int(contact_handle)
         signals["success"] = int(self.env._check_success())
@@ -47,7 +50,7 @@ class MG_CloseDrawer(RobosuiteInterface):
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
         return dict(
-            handle=self.get_object_pose(obj_name=self.env.drawer.handle_name, obj_type="geom"),
+            handle=self.get_object_pose(obj_name=f"{self.env.drawer.name}_door_handle_reg_main", obj_type="geom"),
         )
 
     def get_subtask_term_signals(self):
