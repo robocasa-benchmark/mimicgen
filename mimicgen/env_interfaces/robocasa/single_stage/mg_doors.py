@@ -14,7 +14,7 @@ class MG_OpenSingleDoor(RobosuiteInterface):
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
         return dict(
-            handle=self.get_object_pose(obj_name=self.env.fxtr.handle_name, obj_type="geom"),
+            handle=self.get_object_pose(obj_name=f"{self.env.fxtr.naming_prefix}door_handle_main", obj_type="geom"),
         )
 
     def get_subtask_term_signals(self):
@@ -30,7 +30,7 @@ class MG_OpenSingleDoor(RobosuiteInterface):
         signals = dict()
         contact_handle = self.env.check_contact(
             self.env.robots[0].gripper["right"],
-            self.env.fxtr.handle_name,
+            f"{self.env.fxtr.naming_prefix}door_handle_main",
         )
         signals["stage_contact_handle"] = int(contact_handle)
         signals["success"] = int(self.env._check_success())
@@ -89,7 +89,7 @@ class MG_CloseSingleDoor(RobosuiteInterface):
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
         return dict(
-            handle=self.get_object_pose(obj_name=self.env.fxtr.handle_name, obj_type="geom"),
+            handle=self.get_object_pose(obj_name=f"{self.env.fxtr.naming_prefix}door_handle_main", obj_type="geom"),
         )
     
     def _get_single_door_body(self):
@@ -207,7 +207,13 @@ class MG_OpenMicrowave(MG_OpenSingleDoor):
 class MG_CloseMicrowave(MG_CloseSingleDoor):
     pass
 
+class MG_OpenOven(MG_OpenSingleDoor):
+    pass
+
 class MG_CloseOven(MG_CloseSingleDoor):
+    pass
+
+class MG_OpenToasterOvenDoor(RobosuiteInterface):
     def get_object_poses(self):
         """
         Gets the pose of each object relevant to MimicGen data generation in the current scene.
@@ -216,5 +222,65 @@ class MG_CloseOven(MG_CloseSingleDoor):
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
         return dict(
-            handle=self.get_object_pose(obj_name=f"{self.env.fxtr.naming_prefix}door_handle_main", obj_type="geom"),
+            handle=self.get_object_pose(obj_name=f"{self.env.toaster_oven.naming_prefix}door_handle_main", obj_type="geom"),
         )
+
+    def get_subtask_term_signals(self):
+        """
+        Gets a dictionary of binary flags for each subtask in a task. The flag is 1
+        when the subtask has been completed and 0 otherwise. MimicGen only uses this
+        when parsing source demonstrations at the start of data generation, and it only
+        uses the first 0 -> 1 transition in this signal to detect the end of a subtask.
+
+        Returns:
+            subtask_term_signals (dict): dictionary that maps subtask name to termination flag (0 or 1)
+        """
+        signals = dict()
+        contact_handle = self.env.check_contact(
+            self.env.robots[0].gripper["right"],
+            f"{self.env.toaster_oven.naming_prefix}door_handle_main",
+        )
+        signals["stage_contact_handle"] = int(contact_handle)
+        signals["success"] = int(self.env._check_success())
+        return signals
+
+class MG_CloseToasterOvenDoor(MG_CloseSingleDoor):
+
+    def get_object_poses(self):
+        """
+        Gets the pose of each object relevant to MimicGen data generation in the current scene.
+
+        Returns:
+            object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
+        """
+        return dict(
+            handle=self.get_object_pose(obj_name=f"{self.env.toaster_oven.naming_prefix}door_handle_main", obj_type="geom"),
+        )
+
+    def _get_single_door_body(self):
+
+        def _find_parent(root, target):
+            """
+            Recursively find the parent of 'target' starting from 'root'.
+            Returns the parent element if found, else None.
+            """
+            for child in root:
+                if child is target:
+                    return root
+                parent = _find_parent(child, target)
+                if parent is not None:
+                    return parent
+            return None
+        
+        door_joint_names = self.env.toaster_oven.door_joint_names
+        assert len(door_joint_names) == 1, "task only supports door objects with one door"
+        door_joint = find_elements(self.env.toaster_oven.worldbody, "joint", attribs={"name": door_joint_names[0]})
+        door_body = _find_parent(self.env.toaster_oven.worldbody, door_joint)
+        assert door_body is not None, "No door body found in env"
+        return door_body
+
+class MG_OpenDishwasher(MG_OpenSingleDoor):
+    pass
+
+class MG_CloseDishwasher(MG_CloseSingleDoor):
+    pass

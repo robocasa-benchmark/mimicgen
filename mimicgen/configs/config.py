@@ -29,6 +29,7 @@ def config_factory(name, config_type, dic=None):
     a dictionary to instantiate the config from the dictionary.
     """
     if (config_type not in REGISTERED_CONFIGS) or (name not in REGISTERED_CONFIGS[config_type]):
+        print(REGISTERED_CONFIGS[config_type])
         raise Exception("Config for name {} and type {} not found. Make sure it is a registered config among: {}".format(
             name, config_type, ', '.join(REGISTERED_CONFIGS)))
     return REGISTERED_CONFIGS[config_type][name](dict_to_load=dic)

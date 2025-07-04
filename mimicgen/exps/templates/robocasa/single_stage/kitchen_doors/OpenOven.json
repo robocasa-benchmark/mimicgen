@@ -1,0 +1,26 @@
+{
+    "name": "OpenOven",
+    "type": "robosuite",
+    "experiment": {
+        "source": {
+            "dataset_path": "/data2/abhim/robocasa/robocasa_dc_pilot/20250701/Layout-2/OpenOven/demo.hdf5",
+            "filter_key": "50_demos"
+        },
+        "generation": {
+            "path": "~/robocasa/datasets/v0.1/single_stage/kitchen_doors/OpenOven/mg",
+            "select_src_per_subtask": true,
+            "num_trials": 3010,
+            "transform_first_robot_pose": true
+        }
+    },
+    "task": {
+        "task_spec": {
+            "stage_1": {
+
+            },
+            "stage_2": {
+
+            }
+        }
+    }
+}
