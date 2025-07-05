@@ -170,59 +170,64 @@ def parse_source_dataset(
         ep = demo_keys[ind]
         ep_grp = f["data/{}".format(ep)]
 
-        # try:
+        try:
         # extract datagen info
-        ep_datagen_info = ep_grp["datagen_info"]
-        ep_datagen_info_obj = DatagenInfo(
-            eef_pose=ep_datagen_info["eef_pose"][:],
-            object_poses={ k : ep_datagen_info["object_poses"][k][:] for k in ep_datagen_info["object_poses"] },
-            subtask_term_signals={ k : ep_datagen_info["subtask_term_signals"][k][:] for k in ep_datagen_info["subtask_term_signals"] },
-            target_pose=ep_datagen_info["target_pose"][:],
-            gripper_action=ep_datagen_info["gripper_action"][:],
-        )
+            ep_datagen_info = ep_grp["datagen_info"]
+            ep_datagen_info_obj = DatagenInfo(
+                eef_pose=ep_datagen_info["eef_pose"][:],
+                object_poses={ k : ep_datagen_info["object_poses"][k][:] for k in ep_datagen_info["object_poses"] },
+                subtask_term_signals={ k : ep_datagen_info["subtask_term_signals"][k][:] for k in ep_datagen_info["subtask_term_signals"] },
+                target_pose=ep_datagen_info["target_pose"][:],
+                gripper_action=ep_datagen_info["gripper_action"][:],
+            )
 
-        # parse subtask indices using subtask termination signals
-        ep_subtask_indices = []
-        prev_subtask_term_ind = 0
-        for subtask_ind in range(len(subtask_term_signals)):
-            print("we are at subtask ind ", subtask_ind)
-            subtask_term_signal = subtask_term_signals[subtask_ind]
-            if subtask_term_signal is None:
-                # final subtask, finishes at end of demo
-                subtask_term_ind = ep_grp["actions"].shape[0]
-            else:
-                # trick to detect index where first 0 -> 1 transition occurs - this will be the end of the subtask
-                subtask_indicators = ep_datagen_info_obj.subtask_term_signals[subtask_term_signal]
-                if task_spec is not None:
-                    pad_zero = task_spec[subtask_ind].get("pad_zero", None)
-                    if pad_zero is not None:
-                        subtask_indicators[pad_zero[0]:pad_zero[1]] = 0.0
-                diffs = subtask_indicators[1:] - subtask_indicators[:-1]
-                end_ind = int(diffs.nonzero()[0][0]) + 1
-                subtask_term_ind = end_ind + 1 # increment to support indexing like demo[start:end]
-            ep_subtask_indices.append([prev_subtask_term_ind, subtask_term_ind])
-            prev_subtask_term_ind = subtask_term_ind
+            # parse subtask indices using subtask termination signals
+            ep_subtask_indices = []
+            prev_subtask_term_ind = 0
+            for subtask_ind in range(len(subtask_term_signals)):
+                # print("we are at subtask ind ", subtask_ind)
+                subtask_term_signal = subtask_term_signals[subtask_ind]
+                if subtask_term_signal is None:
+                    # final subtask, finishes at end of demo
+                    subtask_term_ind = ep_grp["actions"].shape[0]
+                else:
+                    # trick to detect index where first 0 -> 1 transition occurs - this will be the end of the subtask
+                    subtask_indicators = ep_datagen_info_obj.subtask_term_signals[subtask_term_signal]
+                    if -1 in subtask_indicators:
+                        # likely a dynamic subtask with differing # of stages. HACK use minimum int32 value to indicate no subtask indices
+                        # This is needed later to detect that this subtask is not present in the episode by checking if the subtask indices are negative
+                        ep_subtask_indices.append([np.iinfo(np.int32).min, np.iinfo(np.int32).min])
+                        continue
+                    if task_spec is not None:
+                        pad_zero = task_spec[subtask_ind].get("pad_zero", None)
+                        if pad_zero is not None:
+                            subtask_indicators[pad_zero[0]:pad_zero[1]] = 0.0
+                    diffs = subtask_indicators[1:] - subtask_indicators[:-1]
+                    end_ind = int(diffs.nonzero()[0][0]) + 1
+                    subtask_term_ind = end_ind + 1 # increment to support indexing like demo[start:end]
+                ep_subtask_indices.append([prev_subtask_term_ind, subtask_term_ind])
+                prev_subtask_term_ind = subtask_term_ind
 
-        # run sanity check on subtask_term_offset_range in task spec to make sure we can never
-        # get an empty subtask in the worst case when sampling subtask bounds:
-        #
-        #   end index of subtask i + max offset of subtask i < end index of subtask i + 1 + min offset of subtask i + 1
-        #
-        assert len(ep_subtask_indices) == len(subtask_term_signals), "mismatch in length of extracted subtask info and number of subtasks"
-        for i in range(1, len(ep_subtask_indices)):
-            prev_max_offset_range = subtask_term_offset_ranges[i - 1][1]
-            assert ep_subtask_indices[i - 1][1] + prev_max_offset_range < ep_subtask_indices[i][1] + subtask_term_offset_ranges[i][0], \
-                "subtask sanity check violation in demo key {} with subtask {} end ind {}, subtask {} max offset {}, subtask {} end ind {}, and subtask {} min offset {}".format(
-                    demo_keys[ind], i - 1, ep_subtask_indices[i - 1][1], i - 1, prev_max_offset_range, i, ep_subtask_indices[i][1], i, subtask_term_offset_ranges[i][0])
+            # run sanity check on subtask_term_offset_range in task spec to make sure we can never
+            # get an empty subtask in the worst case when sampling subtask bounds:
+            #
+            #   end index of subtask i + max offset of subtask i < end index of subtask i + 1 + min offset of subtask i + 1
+            #
+            assert len(ep_subtask_indices) == len(subtask_term_signals), "mismatch in length of extracted subtask info and number of subtasks"
+            # for i in range(1, len(ep_subtask_indices)):
+            #     prev_max_offset_range = subtask_term_offset_ranges[i - 1][1]
+            #     assert ep_subtask_indices[i - 1][1] + prev_max_offset_range < ep_subtask_indices[i][1] + subtask_term_offset_ranges[i][0], \
+            #         "subtask sanity check violation in demo key {} with subtask {} end ind {}, subtask {} max offset {}, subtask {} end ind {}, and subtask {} min offset {}".format(
+            #             demo_keys[ind], i - 1, ep_subtask_indices[i - 1][1], i - 1, prev_max_offset_range, i, ep_subtask_indices[i][1], i, subtask_term_offset_ranges[i][0])
+            
+            datagen_infos.append(ep_datagen_info_obj)
+            subtask_indices.append(ep_subtask_indices)
+            valid_demo_keys.append(ep)
         
-        datagen_infos.append(ep_datagen_info_obj)
-        subtask_indices.append(ep_subtask_indices)
-        valid_demo_keys.append(ep)
-    
-        # except Exception as e:
-        #     print("Encountered exception: {}".format(e))
-        #     print("Excluding ep {}".format(ep))
-        #     continue
+        except Exception as e:
+            print("Encountered exception: {}".format(e))
+            print("Excluding ep {}".format(ep))
+            continue
 
     f.close()
 

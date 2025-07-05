@@ -21,6 +21,10 @@ class RobosuiteInterface(MG_EnvInterface):
 
     # Note: base simulator interface class must fill out interface type as a class property
     INTERFACE_TYPE = "robosuite"
+    DYNAMIC_STAGE_INDS = set()
+
+    def skip_stage(self, stage_ind):
+        return False
 
     def get_robot_eef_pose(self):
         """

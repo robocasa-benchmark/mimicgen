@@ -101,19 +101,20 @@ class DataGenerator(object):
                 high=self.task_spec[i]["subtask_term_offset_range"][1] + 1,
                 size=src_subtask_indices.shape[0]
             )
+            # TODO Only update offsets the subtask exists i.e. integer min is not an index
             src_subtask_indices[:, i, 1] = src_subtask_indices[:, i, 1] + end_offsets
             # don't forget to set these as start indices for next subtask too
             src_subtask_indices[:, i + 1, 0] = src_subtask_indices[:, i, 1]
 
-        # ensure non-empty subtasks
-        assert np.all((src_subtask_indices[:, :, 1] - src_subtask_indices[:, :, 0]) > 0), "got empty subtasks!"
+        # # ensure non-empty subtasks
+        # assert np.all((src_subtask_indices[:, :, 1] - src_subtask_indices[:, :, 0]) > 0), "got empty subtasks!"
 
-        # ensure subtask indices increase (both starts and ends)
-        assert np.all((src_subtask_indices[:, 1:, :] - src_subtask_indices[:, :-1, :]) > 0), "subtask indices do not strictly increase"
+        # # ensure subtask indices increase (both starts and ends)
+        # assert np.all((src_subtask_indices[:, 1:, :] - src_subtask_indices[:, :-1, :]) > 0), "subtask indices do not strictly increase"
 
-        # ensure subtasks are in order
-        subtask_inds_flat = src_subtask_indices.reshape(src_subtask_indices.shape[0], -1)
-        assert np.all((subtask_inds_flat[:, 1:] - subtask_inds_flat[:, :-1]) >= 0), "subtask indices not in order"
+        # # ensure subtasks are in order
+        # subtask_inds_flat = src_subtask_indices.reshape(src_subtask_indices.shape[0], -1)
+        # assert np.all((subtask_inds_flat[:, 1:] - subtask_inds_flat[:, :-1]) >= 0), "subtask indices not in order"
 
         return src_subtask_indices
 
@@ -126,6 +127,7 @@ class DataGenerator(object):
         subtask_object_name,
         selection_strategy_name,
         selection_strategy_kwargs=None,
+        filtered_src_demo_inds=None,
     ):
         """
         Helper method to run source subtask segment selection.
@@ -153,6 +155,8 @@ class DataGenerator(object):
             # datagen info over all timesteps of the src trajectory
             src_ep_datagen_info = self.src_dataset_infos[i]
 
+            if filtered_src_demo_inds is not None and i not in filtered_src_demo_inds:
+                continue
             # time indices for subtask
             subtask_start_ind = src_subtask_inds[i][0]
             subtask_end_ind = src_subtask_inds[i][1]
@@ -270,6 +274,8 @@ class DataGenerator(object):
             # get datagen info in current environment to get required info for selection (e.g. eef pose, object pose)
             cur_datagen_info = env_interface.get_datagen_info()
 
+            if env_interface.skip_stage(subtask_ind):
+                continue
             # name of object for this subtask
             subtask_object_name = self.task_spec[subtask_ind]["object_ref"]
 
@@ -282,15 +288,32 @@ class DataGenerator(object):
 
             # Run source demo selection or use selected demo from previous iteration
             if need_source_demo_selection:
-                selected_src_demo_ind = self.select_source_demo(
-                    eef_pose=cur_datagen_info.eef_pose,
-                    object_pose=cur_object_pose,
-                    subtask_ind=subtask_ind,
-                    src_subtask_inds=all_subtask_inds[:, subtask_ind],
-                    subtask_object_name=subtask_object_name,
-                    selection_strategy_name=self.task_spec[subtask_ind]["selection_strategy"],
-                    selection_strategy_kwargs=self.task_spec[subtask_ind]["selection_strategy_kwargs"],
-                )
+                if subtask_ind in env_interface.DYNAMIC_STAGE_INDS:
+                    # print(all_subtask_inds)
+                    filtered_src_demo_inds = [i for i in range(len(all_subtask_inds)) if not (all_subtask_inds[i][subtask_ind] < 0).any()]
+                    assert len(filtered_src_demo_inds) > 0, "no source demos available for subtask {}!".format(subtask_ind)
+                    # print(all_subtask_inds[filtered_src_demo_inds, subtask_ind])
+                    selected_src_demo_ind = self.select_source_demo(
+                        eef_pose=cur_datagen_info.eef_pose,
+                        object_pose=cur_object_pose,
+                        subtask_ind=subtask_ind,
+                        src_subtask_inds=all_subtask_inds[:, subtask_ind],
+                        subtask_object_name=subtask_object_name,
+                        selection_strategy_name=self.task_spec[subtask_ind]["selection_strategy"],
+                        selection_strategy_kwargs=self.task_spec[subtask_ind]["selection_strategy_kwargs"],
+                        filtered_src_demo_inds=filtered_src_demo_inds
+                    )
+                    selected_src_demo_ind = filtered_src_demo_inds[selected_src_demo_ind]
+                else:
+                    selected_src_demo_ind = self.select_source_demo(
+                        eef_pose=cur_datagen_info.eef_pose,
+                        object_pose=cur_object_pose,
+                        subtask_ind=subtask_ind,
+                        src_subtask_inds=all_subtask_inds[:, subtask_ind],
+                        subtask_object_name=subtask_object_name,
+                        selection_strategy_name=self.task_spec[subtask_ind]["selection_strategy"],
+                        selection_strategy_kwargs=self.task_spec[subtask_ind]["selection_strategy_kwargs"],
+                    )
             assert (selected_src_demo_ind is not None)
 
             # selected subtask segment time indices

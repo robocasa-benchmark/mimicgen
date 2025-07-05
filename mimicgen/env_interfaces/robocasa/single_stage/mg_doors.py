@@ -37,7 +37,48 @@ class MG_OpenSingleDoor(RobosuiteInterface):
         return signals
 
 
-class MG_OpenDoubleDoor(RobosuiteInterface):
+class MG_OpenMultipleDoor(RobosuiteInterface):
+
+    DYNAMIC_STAGE_INDS = set([0,1,2,3])
+
+    def _get_handle_bodies(self):
+
+        door_handle_bodies = []
+
+        for body in self.env.fxtr.worldbody.findall(".//body"):
+            name = body.attrib.get("name", "")
+            if "door_handle_main" in name:
+                door_handle_bodies.append(body)
+
+        return door_handle_bodies
+    
+    def _get_handle_door_joint_names(self, handle_body):
+        """
+        Gets the door joint names associated with a handle body name.
+
+        Args:
+            handle_body (str): name of the handle body
+
+        Returns:
+            door_joint_names (list): list of door joint names associated with the handle body
+        """
+        def _find_parent(root, target):
+            """
+            Recursively find the parent of 'target' starting from 'root'.
+            Returns the parent element if found, else None.
+            """
+            for child in root:
+                if child is target:
+                    return root
+                parent = _find_parent(child, target)
+                if parent is not None:
+                    return parent
+            return None
+        door = _find_parent(self.env.fxtr.worldbody, _find_parent(self.env.fxtr.worldbody, handle_body))
+        assert door is not None, "No door found in env for handle body {}".format(handle_body.get("name"))
+        door_joint = find_elements(door, "joint")
+        assert door_joint is not None, "No door joint found in env for handle body {}".format(door.get("name"))
+        return door_joint.get("name")
 
     def get_object_poses(self):
         """
@@ -46,9 +87,15 @@ class MG_OpenDoubleDoor(RobosuiteInterface):
         Returns:
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
+        handle_names = self._get_handle_bodies()
+        handle_names = [h.get("name") for h in handle_names]
+        # TODO randomize order of task! by shuffling handle_names
+
+        handle_1_pose = self.get_object_pose(obj_name=handle_names[0], obj_type="body") 
+        handle_2_pose = self.get_object_pose(obj_name=handle_names[1], obj_type="body") if len(handle_names) > 1 else np.zeros_like(handle_1_pose)
         return dict(
-            handle_right=self.get_object_pose(obj_name=self.env.door_fxtr.right_handle_name, obj_type="geom"),
-            handle_left=self.get_object_pose(obj_name=self.env.door_fxtr.left_handle_name, obj_type="geom"),
+            handle_1=handle_1_pose,
+            handle_2=handle_2_pose,
         )
 
     def get_subtask_term_signals(self):
@@ -62,21 +109,42 @@ class MG_OpenDoubleDoor(RobosuiteInterface):
             subtask_term_signals (dict): dictionary that maps subtask name to termination flag (0 or 1)
         """
         signals = dict()
-        door_state = self.env.door_fxtr.get_door_state(self.env)
+        handle_bodies = self._get_handle_bodies()
 
-        for side in ["left", "right"]:
+        for door_num in [1, 2]:
+            if door_num == 2 and len(handle_bodies) < 2:
+                signals["stage_contact_handle_{}".format(door_num)] = -1
+                signals["stage_open_door_{}".format(door_num)] = -1
+                continue
+            handle_geoms = find_elements(
+                handle_bodies[door_num - 1],
+                tags="geom",
+                return_first=False
+            )
             contact_handle = self.env.check_contact(
                 self.env.robots[0].gripper["right"],
-                self.env.door_fxtr.left_handle_name if side == "left" else self.env.door_fxtr.right_handle_name,
+                [e.get("name") for e in handle_geoms]
             )
 
-            door_open = door_state["{}_door".format(side)] > 0.90
-
-            signals["stage_contact_{}_handle".format(side)] = int(contact_handle)
-            signals["stage_open_{}_door".format(side)] = int(door_open) # and robot_cleared_door)
-        signals["success"] = int(self.env._check_success())
-
+            door_open = self.env.fxtr.is_open(
+                self.env,
+                joint_names=[self._get_handle_door_joint_names(handle_bodies[door_num - 1])],
+            )
+            signals["stage_contact_handle_{}".format(door_num)] = int(contact_handle)
+            signals["stage_open_door_{}".format(door_num)] = int(door_open) # and robot_cleared_door)
+           
+        signals["success"] = int(self.env._check_success())        
         return signals
+
+    def skip_stage(self, stage_ind):
+        if stage_ind not in self.DYNAMIC_STAGE_INDS:
+            return False
+
+        # Skip stage 0 if there is only one door
+        if stage_ind >= 2 and len(self._get_handle_bodies()) < 2:
+            return True
+        
+        return False
     
 
 class MG_CloseSingleDoor(RobosuiteInterface):
@@ -126,18 +194,6 @@ class MG_CloseSingleDoor(RobosuiteInterface):
         """
         signals = dict()
 
-        # door_points = []
-        # for p_name in ["p1", "p2", "p3"]:
-        #     site_name = "{}_door_{}".format(self.env.fxtr.name, p_name)
-        #     p = self.env.sim.data.site_xpos[self.env.sim.model.site_name2id(site_name)]
-        #     door_points.append(p)
-        # gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id["right"]]
-        # robot_cleared_door = np.dot(
-        #     gripper_site_pos - door_points[1],
-        #     np.cross(door_points[1] - door_points[0], door_points[2] - door_points[0])
-        # ) > 0
-
-        # signals["stage_clear_door"] = int(robot_cleared_door)
         single_door_body = self._get_single_door_body()
         door_geoms = find_elements(single_door_body, tags="geom", return_first=False)
         door_geom_names = [e.get("name") for e in door_geoms]
@@ -152,7 +208,29 @@ class MG_CloseSingleDoor(RobosuiteInterface):
         return signals
 
 
-class MG_CloseDoubleDoor(RobosuiteInterface):
+class MG_CloseMultipleDoor(RobosuiteInterface):
+
+    DYNAMIC_STAGE_INDS = set([0,1,2,3])
+
+    def _get_door_bodies(self):
+
+        def _find_parent(root, target):
+            """
+            Recursively find the parent of 'target' starting from 'root'.
+            Returns the parent element if found, else None.
+            """
+            for child in root:
+                if child is target:
+                    return root
+                parent = _find_parent(child, target)
+                if parent is not None:
+                    return parent
+            return None
+        
+        door_joint_names = self.env.fxtr.door_joint_names
+        door_joints = [find_elements(self.env.fxtr.worldbody, "joint", attribs={"name": name}) for name in door_joint_names]
+        door_bodies = [_find_parent(self.env.fxtr.worldbody, joint) for joint in door_joints]
+        return door_bodies
 
     def get_object_poses(self):
         """
@@ -161,10 +239,12 @@ class MG_CloseDoubleDoor(RobosuiteInterface):
         Returns:
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
-        fxtr_name = self.env.door_fxtr.name
+        door_bodies = self._get_door_bodies()
+        door_1_pose = self.get_object_pose(door_bodies[0].get("name"), obj_type="body")
+        door_2_pose = self.get_object_pose(door_bodies[1].get("name"), obj_type="body") if len(door_bodies) > 1 else np.zeros_like(door_1_pose)
         return dict(
-            door_right=self.get_object_pose(obj_name="{}_hingeleftdoor".format(fxtr_name), obj_type="body"),
-            door_left=self.get_object_pose(obj_name="{}_hingeleftdoor".format(fxtr_name), obj_type="body"),
+            door_1=door_1_pose,
+            door_2=door_2_pose,
         )
 
     def get_subtask_term_signals(self):
@@ -178,28 +258,44 @@ class MG_CloseDoubleDoor(RobosuiteInterface):
             subtask_term_signals (dict): dictionary that maps subtask name to termination flag (0 or 1)
         """
         signals = dict()
-        door_state = self.env.door_fxtr.get_door_state(self.env)
+        door_bodies = self._get_door_bodies()
+        for door_num in [1, 2]:
+            if door_num == 2 and len(door_bodies) < 2:
+                signals["stage_contact_door_{}".format(door_num)] = -1
+                signals["stage_close_door_{}".format(door_num)] = -1
+                continue
 
-        for side in ["left", "right"]:
-            door_points = []
-            for p_name in ["p1", "p2", "p3"]:
-                site_name = "{}_{}door_{}".format(self.env.door_fxtr.name, side, p_name)
-                p = self.env.sim.data.site_xpos[self.env.sim.model.site_name2id(site_name)]
-                door_points.append(p)
-            gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id["right"]]
-            robot_cleared_door = np.dot(
-                gripper_site_pos - door_points[1],
-                np.cross(door_points[1] - door_points[0], door_points[2] - door_points[0])
-            ) * (-1 if side == "right" else 1) > 0
-            
-            door_closed = door_state["{}_door".format(side)] < 0.10
-            
-            signals["stage_clear_{}_door".format(side)] = int(robot_cleared_door)
-            signals["stage_close_{}_door".format(side)] = int(door_closed)
+            door_geoms = find_elements(
+                door_bodies[door_num - 1],
+                tags="geom",
+                return_first=False
+            )
+            contact_door = self.env.check_contact(
+                self.env.robots[0].gripper["right"],
+                [e.get("name") for e in door_geoms]
+            )
+
+            door_closed = self.env.fxtr.is_closed(
+                self.env,
+                joint_names=[self.env.fxtr.door_joint_names[door_num - 1]],
+            )
+
+            signals["stage_contact_door_{}".format(door_num)] = int(contact_door)
+            signals["stage_close_door_{}".format(door_num)] = int(door_closed)
         
         signals["success"] = int(self.env._check_success())
 
         return signals
+    
+    def skip_stage(self, stage_ind):
+        if stage_ind not in self.DYNAMIC_STAGE_INDS:
+            return False
+
+        # Skip stage 0 if there is only one door
+        if stage_ind >= 2 and len(self._get_door_bodies()) < 2:
+            return True
+        
+        return False
 
 class MG_OpenMicrowave(MG_OpenSingleDoor):
     pass
@@ -283,4 +379,9 @@ class MG_OpenDishwasher(MG_OpenSingleDoor):
     pass
 
 class MG_CloseDishwasher(MG_CloseSingleDoor):
+    pass
+
+class MG_OpenCabinet(MG_OpenMultipleDoor):
+    pass
+class MG_CloseCabinet(MG_CloseMultipleDoor):
     pass

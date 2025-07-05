@@ -32,8 +32,7 @@ class KitchenOpenSingleDoor_Config(MG_Config):
         self.task.task_spec.do_not_lock_keys() # allow downstream code to completely replace the task spec
 
 
-class KitchenOpenDoubleDoor_Config(MG_Config):
-    NAME = "OpenDoubleDoor"
+class KitchenOpenMultipleDoor_Config(MG_Config):
     TYPE = "robosuite"
 
     def task_config(self):
@@ -43,8 +42,8 @@ class KitchenOpenDoubleDoor_Config(MG_Config):
         stages of each task, the amount of noise to apply during each stage, etc).
         """
         self.task.task_spec.stage_1 = dict(
-            object_ref="handle_right", 
-            subtask_term_signal="stage_contact_right_handle", 
+            object_ref="handle_1", 
+            subtask_term_signal="stage_contact_handle_1", 
             subtask_term_offset_range=None, #(10, 20),
             action_noise=0.05,
             num_interpolation_steps=5,
@@ -52,8 +51,8 @@ class KitchenOpenDoubleDoor_Config(MG_Config):
             selection_strategy_kwargs=dict(nn_k=5),
         )
         self.task.task_spec.stage_2 = dict(
-            object_ref="handle_right", 
-            subtask_term_signal="stage_open_right_door", 
+            object_ref="handle_1", 
+            subtask_term_signal="stage_open_door_1", 
             subtask_term_offset_range=None, #(10, 20),
             action_noise=0.05,
             num_interpolation_steps=5,
@@ -61,8 +60,8 @@ class KitchenOpenDoubleDoor_Config(MG_Config):
             selection_strategy_kwargs=dict(nn_k=5),
         )
         self.task.task_spec.stage_3 = dict(
-            object_ref="handle_left", 
-            subtask_term_signal="stage_contact_left_handle", 
+            object_ref="handle_2", 
+            subtask_term_signal="stage_contact_handle_2", 
             subtask_term_offset_range=None, #(10, 20),
             pad_zero=(0, 150),
             action_noise=0.05,
@@ -71,7 +70,7 @@ class KitchenOpenDoubleDoor_Config(MG_Config):
             selection_strategy_kwargs=dict(nn_k=5),
         )
         self.task.task_spec.stage_4 = dict(
-            object_ref="handle_left", 
+            object_ref="handle_2", 
             subtask_term_signal=None, 
             subtask_term_offset_range=None, #(10, 20),
             action_noise=0.05,
@@ -113,7 +112,7 @@ class KitchenCloseSingleDoor_Config(MG_Config):
         self.task.task_spec.do_not_lock_keys() # allow downstream code to completely replace the task spec
 
 
-class KitchenCloseDoubleDoor_Config(MG_Config):
+class KitchenCloseMultipleDoor_Config(MG_Config):
     NAME = "CloseDoubleDoor"
     TYPE = "robosuite"
 
@@ -124,8 +123,8 @@ class KitchenCloseDoubleDoor_Config(MG_Config):
         stages of each task, the amount of noise to apply during each stage, etc).
         """
         self.task.task_spec.stage_1 = dict(
-            object_ref="door_right", 
-            subtask_term_signal="stage_clear_right_door", 
+            object_ref="door_1", 
+            subtask_term_signal="stage_contact_door_1", 
             subtask_term_offset_range=(10, 20),
             action_noise=0.05,
             num_interpolation_steps=5,
@@ -133,8 +132,8 @@ class KitchenCloseDoubleDoor_Config(MG_Config):
             selection_strategy_kwargs=dict(nn_k=5),
         )
         self.task.task_spec.stage_2 = dict(
-            object_ref="door_right", 
-            subtask_term_signal="stage_close_right_door", 
+            object_ref="door_1", 
+            subtask_term_signal="stage_close_door_1", 
             subtask_term_offset_range=(10, 20),
             action_noise=0.05,
             num_interpolation_steps=5,
@@ -142,8 +141,8 @@ class KitchenCloseDoubleDoor_Config(MG_Config):
             selection_strategy_kwargs=dict(nn_k=5),
         )
         self.task.task_spec.stage_3 = dict(
-            object_ref="door_left", 
-            subtask_term_signal="stage_clear_left_door", 
+            object_ref="door_2", 
+            subtask_term_signal="stage_contact_door_2", 
             subtask_term_offset_range=(10, 20),
             action_noise=0.05,
             num_interpolation_steps=5,
@@ -151,7 +150,7 @@ class KitchenCloseDoubleDoor_Config(MG_Config):
             selection_strategy_kwargs=dict(nn_k=5),
         )
         self.task.task_spec.stage_4 = dict(
-            object_ref="door_left", 
+            object_ref="door_2", 
             subtask_term_signal=None, 
             subtask_term_offset_range=None, #(10, 20),
             action_noise=0.05,
@@ -184,3 +183,8 @@ class KitchenOpenDishwasher_Config(KitchenOpenSingleDoor_Config):
 
 class KitchenCloseDishwasher_Config(KitchenCloseSingleDoor_Config):
     NAME = "CloseDishwasher"
+
+class KitchenOpenCabinet_Config(KitchenOpenMultipleDoor_Config):
+    NAME = "OpenCabinet"
+class KitchenCloseCabinet_Config(KitchenCloseMultipleDoor_Config):
+    NAME = "CloseCabinet"
