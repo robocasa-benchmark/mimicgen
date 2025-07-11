@@ -66,8 +66,8 @@ class CoffeeServeMug_Config(MG_Config):
         self.task.task_spec.do_not_lock_keys()
 
 
-class CoffeePressButton_Config(MG_Config):
-    NAME = "CoffeePressButton"
+class StartCoffeeMachine_Config(MG_Config):
+    NAME = "StartCoffeeMachine"
     TYPE = "robosuite"
 
     def task_config(self):

@@ -73,7 +73,7 @@ class MG_CoffeeServeMug(RobosuiteInterface):
         return signals
     
 
-class MG_CoffeePressButton(RobosuiteInterface):
+class MG_StartCoffeeMachine(RobosuiteInterface):
 
     def get_object_poses(self):
         """

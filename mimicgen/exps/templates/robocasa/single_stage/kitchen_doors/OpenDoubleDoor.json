@@ -4,7 +4,7 @@
     "experiment": {
         "source": {
             "dataset_path": "~/robocasa/datasets/v0.1/single_stage/kitchen_doors/OpenDoubleDoor/2024-04-26/demo.hdf5",
-            "filter_key": "50_demos"
+            "filter_key": "100_demos"
         },
         "generation": {
             "path": "~/robocasa/datasets/v0.1/single_stage/kitchen_doors/OpenDoubleDoor/mg",
@@ -15,18 +15,10 @@
     },
     "task": {
         "task_spec": {
-            "stage_1": {
-
-            },
-            "stage_2": {
-
-            },
-            "stage_3": {
-
-            },
-            "stage_4": {
-
-            }
+            "stage_1": {},
+            "stage_2": {},
+            "stage_3": {},
+            "stage_4": {}
         }
     }
 }
