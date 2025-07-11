@@ -125,7 +125,7 @@ class MG_Config(Config):
         self.experiment.task.gripper = None                 # if provided, override the gripper in env meta to collect data on a different robot gripper from the one in source data
         self.experiment.task.interface = None               # if provided, override the environment interface class to use for this task to use a different one from the one in source data
         self.experiment.task.interface_type = None          # if provided, specify environment interface type (usually one per simulator) to use a different one from the one in source data
-        self.experiment.task.kwargs = dict(layout_ids=-2)
+        self.experiment.task.kwargs = dict(layout_ids=-2, style_ids=-2, obj_instance_split="train")
 
         # general settings
         self.experiment.max_num_failures = 50           # maximum number of failure demos to save
