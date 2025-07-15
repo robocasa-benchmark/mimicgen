@@ -69,6 +69,7 @@ def run_pipeline(
 
     part1 = args.part1
     part2 = args.part2
+    part3 = args.part3
     env = build_env(device_num)
     num_demos = args.num_demos
 
@@ -165,7 +166,7 @@ def run_pipeline(
         glob.glob(f"{shared_parent}/*/{dataset}/")[0]
     )  
 
-    if part2:
+    if part3:
         copy_tree(gen_out_root, shared_dst_root / "mg", overwrite)
 
     print("Pipeline complete")
@@ -187,6 +188,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--overwrite", action="store_true", help="Overwrite existing local / shared outputs")
     p.add_argument("--part1", action="store_true")
     p.add_argument("--part2", action="store_true")
+    p.add_argument("--part3", action="store_true")
 
     # Path overrides (rarely needed)
     p.add_argument("--shared-root", type=Path, default=SHARED_DATA_PTH)
