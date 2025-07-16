@@ -33,8 +33,8 @@ class PnPObjectToContainer_Config(MG_Config):
         )
         self.task.task_spec.do_not_lock_keys() # allow downstream code to completely replace the task spec
 
-class PnPCounterToCab_Config(MG_Config):
-    NAME = "PnPCounterToCab"
+class PnPCounterToCabinet_Config(MG_Config):
+    NAME = "PnPCounterToCabinet"
     TYPE = "robosuite"
 
     def task_config(self):
@@ -64,8 +64,8 @@ class PnPCounterToCab_Config(MG_Config):
         self.task.task_spec.do_not_lock_keys() # allow downstream code to completely replace the task spec
 
 
-class PnPCabToCounter_Config(MG_Config):
-    NAME = "PnPCabToCounter"
+class PnPCabinetToCounter_Config(MG_Config):
+    NAME = "PnPCabinetToCounter"
     TYPE = "robosuite"
 
     def task_config(self):

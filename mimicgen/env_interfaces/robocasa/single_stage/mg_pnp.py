@@ -31,7 +31,7 @@ class MG_PnPObjectToContainer(RobosuiteInterface):
         signals["stage_place_obj"] = int(self.env._check_success())
         return signals
 
-class MG_PnPCabToCounter(RobosuiteInterface):
+class MG_PnPCabinetToCounter(RobosuiteInterface):
 
     def get_object_poses(self):
         """
@@ -61,7 +61,7 @@ class MG_PnPCabToCounter(RobosuiteInterface):
         return signals
 
 
-class MG_PnPCounterToCab(RobosuiteInterface):
+class MG_PnPCounterToCabinet(RobosuiteInterface):
 
     def get_object_poses(self):
         """
