@@ -80,6 +80,7 @@ def extract_datagen_info_from_trajectory(
 
     # convert list of dict to dict of list for datagen info dictionaries (for convenient writes to hdf5 dataset)
     all_datagen_infos = TensorUtils.list_of_flat_dict_to_dict_of_list(all_datagen_infos)
+    all_datagen_infos = env_interface.postprocess_datagen_info(all_datagen_infos)
 
     for k in all_datagen_infos:
         if k in ["object_poses", "subtask_term_signals"]:

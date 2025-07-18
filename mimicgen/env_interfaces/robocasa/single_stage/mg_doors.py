@@ -146,6 +146,73 @@ class MG_OpenMultipleDoor(RobosuiteInterface):
         
         return False
     
+    def _stage_order_swapped(self, all_datagen_info):
+        """
+        Returns True if, in the recorded trajectory, the robot made first contact
+        with handle 2 before handle 1.  .
+        """
+        for term_sig in all_datagen_info["subtask_term_signals"]:
+            if term_sig["stage_open_door_2"] == 1:
+                return True          # handle‑2 came first
+            elif term_sig["stage_open_door_1"] == 1:
+                return False         # handle‑1 came first
+        raise ValueError("Robot never made contact with handle")
+    
+    def _clean_contact_handle_2_signals(self, all_datagen_info):
+        """
+        When handle 2 is brushed accidentally while reaching for handle-1,
+        `stage_contact_handle_2` may flip to 1 before door 1 is opened.  
+        We blank those premature 1s.
+        """
+        term_list = all_datagen_info["subtask_term_signals"]
+
+        for sig in term_list:
+            # moment door 1 opens
+            if sig["stage_open_door_1"] == 1:
+                break
+
+            if sig["stage_contact_handle_2"] != -1:
+                sig["stage_contact_handle_2"] = 0
+
+        return all_datagen_info
+
+
+    
+    def postprocess_datagen_info(self, all_datagen_info):
+        """
+        If the robot opened handle 2 first, swap datagen info
+        """
+        if self._stage_order_swapped(all_datagen_info):
+            all_datagen_info = all_datagen_info.copy()
+
+            new_obj_poses = []
+            for poses in all_datagen_info["object_poses"]:
+                new_obj_poses.append(
+                    dict(
+                        handle_1=poses["handle_2"].copy(),
+                        handle_2=poses["handle_1"].copy(),
+                    )
+                )
+
+            new_term_signals = []
+            for info in all_datagen_info["subtask_term_signals"]:
+                swapped = {}  
+                swapped["stage_contact_handle_1"], swapped["stage_contact_handle_2"] = \
+                    info["stage_contact_handle_2"], info["stage_contact_handle_1"]
+                
+                swapped["stage_open_door_1"],   swapped["stage_open_door_2"]   = \
+                    info["stage_open_door_2"],   info["stage_open_door_1"]
+                swapped["success"] = info["success"]
+                new_term_signals.append(swapped)
+
+
+            all_datagen_info["object_poses"] = new_obj_poses
+            all_datagen_info["subtask_term_signals"] = new_term_signals
+        
+        all_datagen_info = self._clean_contact_handle_2_signals(all_datagen_info)
+        
+        return all_datagen_info
+    
 
 class MG_CloseSingleDoor(RobosuiteInterface):
 
@@ -296,6 +363,41 @@ class MG_CloseMultipleDoor(RobosuiteInterface):
             return True
         
         return False
+
+    def _stage_order_swapped(self, all_datagen_info):
+        for term_signals in all_datagen_info["subtask_term_signals"]:
+            if term_signals["stage_contact_door_2"] == 1:
+                return True
+            elif term_signals["stage_contact_door_1"] == 1:
+                return False
+        raise ValueError("Robot never made contact with door")
+
+    def postprocess_datagen_info(self, all_datagen_info):
+        if not self._stage_order_swapped(all_datagen_info):
+            return all_datagen_info
+        new_obj_poses = []
+        new_term_signals = []
+
+        for info in all_datagen_info["object_poses"]:
+            # swap refs
+            new_obj_poses.append(dict(door_1=info["door_2"].copy(), door_2=info["door_1"].copy()))
+        
+        for info in all_datagen_info["subtask_term_signals"]:
+            signals = {}
+            signals["stage_contact_door_1"] = info["stage_contact_door_2"]
+            signals["stage_close_door_1"] = info["stage_close_door_2"]
+
+            signals["stage_contact_door_2"] = info["stage_contact_door_1"]
+            signals["stage_close_door_2"] = info["stage_close_door_1"]
+
+            signals["success"] = info["success"]
+
+            new_term_signals.append(signals)
+                
+        
+        all_datagen_info["object_poses"] = new_obj_poses
+        all_datagen_info["subtask_term_signals"] = new_term_signals
+        return all_datagen_info
 
 class MG_OpenMicrowave(MG_OpenSingleDoor):
     pass
