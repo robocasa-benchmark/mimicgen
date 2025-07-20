@@ -215,3 +215,6 @@ class MG_EnvInterface(object):
             base_rot=base_rot,
         )
         return datagen_info
+
+    def postprocess_datagen_info(self, all_datagen_info):
+        return all_datagen_info

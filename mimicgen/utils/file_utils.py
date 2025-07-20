@@ -194,7 +194,7 @@ def parse_source_dataset(
                     # trick to detect index where first 0 -> 1 transition occurs - this will be the end of the subtask
                     subtask_indicators = ep_datagen_info_obj.subtask_term_signals[subtask_term_signal]
                     if -1 in subtask_indicators:
-                        # likely a dynamic subtask with differing # of stages. HACK use minimum int32 value to indicate no subtask indices
+                        # likely a dynamic subtask with differing # of stages. HACK use minimum int32 value to indicate no subtask indices for this "null" stage
                         # This is needed later to detect that this subtask is not present in the episode by checking if the subtask indices are negative
                         ep_subtask_indices.append([np.iinfo(np.int32).min, np.iinfo(np.int32).min])
                         continue
@@ -214,11 +214,14 @@ def parse_source_dataset(
             #   end index of subtask i + max offset of subtask i < end index of subtask i + 1 + min offset of subtask i + 1
             #
             assert len(ep_subtask_indices) == len(subtask_term_signals), "mismatch in length of extracted subtask info and number of subtasks"
-            # for i in range(1, len(ep_subtask_indices)):
-            #     prev_max_offset_range = subtask_term_offset_ranges[i - 1][1]
-            #     assert ep_subtask_indices[i - 1][1] + prev_max_offset_range < ep_subtask_indices[i][1] + subtask_term_offset_ranges[i][0], \
-            #         "subtask sanity check violation in demo key {} with subtask {} end ind {}, subtask {} max offset {}, subtask {} end ind {}, and subtask {} min offset {}".format(
-            #             demo_keys[ind], i - 1, ep_subtask_indices[i - 1][1], i - 1, prev_max_offset_range, i, ep_subtask_indices[i][1], i, subtask_term_offset_ranges[i][0])
+            for i in range(1, len(ep_subtask_indices)):
+                # no need to check offsets for these "null" stages
+                if np.iinfo(np.int32).min in ep_subtask_indices[i]:
+                    continue
+                prev_max_offset_range = subtask_term_offset_ranges[i - 1][1]
+                assert ep_subtask_indices[i - 1][1] + prev_max_offset_range < ep_subtask_indices[i][1] + subtask_term_offset_ranges[i][0], \
+                    "subtask sanity check violation in demo key {} with subtask {} end ind {}, subtask {} max offset {}, subtask {} end ind {}, and subtask {} min offset {}".format(
+                        demo_keys[ind], i - 1, ep_subtask_indices[i - 1][1], i - 1, prev_max_offset_range, i, ep_subtask_indices[i][1], i, subtask_term_offset_ranges[i][0])
             
             datagen_infos.append(ep_datagen_info_obj)
             subtask_indices.append(ep_subtask_indices)
