@@ -80,6 +80,7 @@ def run_pipeline(
     shared_parent = shared_root / split
     pattern = f"{shared_parent}/*/{dataset}/**/demo.hdf5"
     shared_datasets = glob.glob(pattern, recursive=True)
+    shared_datasets = [sd for sd in shared_datasets if "mg" not in sd]
     assert (
         len(shared_datasets) == 1
     ), f"Expected exactly one dataset for '{dataset}', got: {shared_datasets}"
