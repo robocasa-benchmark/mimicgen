@@ -188,3 +188,8 @@ class KitchenOpenCabinet_Config(KitchenOpenMultipleDoor_Config):
     NAME = "OpenCabinet"
 class KitchenCloseCabinet_Config(KitchenCloseMultipleDoor_Config):
     NAME = "CloseCabinet"
+    
+class KitchenOpenFridge_Config(KitchenOpenMultipleDoor_Config):
+    NAME = "OpenFridge"
+class KitchenCloseFridge_Config(KitchenCloseMultipleDoor_Config):
+    NAME = "CloseFridge"

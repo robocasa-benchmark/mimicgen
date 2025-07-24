@@ -17,6 +17,7 @@ from mimicgen.env_interfaces.robocasa.single_stage.mg_stove import *
 from mimicgen.env_interfaces.robocasa.single_stage.mg_toaster_oven import *
 from mimicgen.env_interfaces.robocasa.single_stage.mg_stand_mixer import *
 from mimicgen.env_interfaces.robocasa.single_stage.mg_electric_kettle import *
+from mimicgen.env_interfaces.robocasa.single_stage.mg_toaster import *
 # except ImportError as e:
 #     print("WARNING: robosuite environment interfaces not imported...")
 #     print("Got error: {}".format(e))

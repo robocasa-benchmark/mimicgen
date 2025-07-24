@@ -342,7 +342,7 @@ class PnPCounterToStandMixer_Config(MG_Config):
         )
         self.task.task_spec.do_not_lock_keys() # allow downstream code to completely replace the task spec
 
-class PnPToasterOvenToCounter_Config(PnPObjectToContainer_Config):
+class PnPOvenToCounter_Config(PnPObjectToContainer_Config):
     NAME = "PnPOvenToCounter"
 
 class PnPCounterToOven_Config(MG_Config):
@@ -374,3 +374,6 @@ class PnPCounterToOven_Config(MG_Config):
             selection_strategy_kwargs=dict(nn_k=5),
         )
         self.task.task_spec.do_not_lock_keys() # allow downstream code to completely replace the task spec
+
+class PnPToasterToCounter_Config(PnPObjectToContainer_Config):
+    NAME = "PnPToasterToCounter"

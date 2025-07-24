@@ -2,6 +2,7 @@ from mimicgen.env_interfaces.robosuite import RobosuiteInterface
 
 import numpy as np
 from robosuite.utils.mjcf_utils import find_elements
+from robocasa.models.fixtures import Fixture
 
 
 class MG_OpenSingleDoor(RobosuiteInterface):
@@ -41,7 +42,7 @@ class MG_OpenMultipleDoor(RobosuiteInterface):
 
     DYNAMIC_STAGE_INDS = set([0,1,2,3])
 
-    def _get_handle_bodies(self):
+    def _get_handles(self):
 
         door_handle_bodies = []
 
@@ -50,7 +51,7 @@ class MG_OpenMultipleDoor(RobosuiteInterface):
             if "door_handle_main" in name:
                 door_handle_bodies.append(body)
 
-        return door_handle_bodies
+        return door_handle_bodies, "body"
     
     def _get_handle_door_joint_names(self, handle_body):
         """
@@ -87,12 +88,12 @@ class MG_OpenMultipleDoor(RobosuiteInterface):
         Returns:
             object_poses (dict): dictionary that maps object name (str) to object pose matrix (4x4 np.array)
         """
-        handle_names = self._get_handle_bodies()
-        handle_names = [h.get("name") for h in handle_names]
+        handle_elems, handle_type = self._get_handles()
+        handle_names = [h.get("name") for h in handle_elems]
         # TODO randomize order of task! by shuffling handle_names
 
-        handle_1_pose = self.get_object_pose(obj_name=handle_names[0], obj_type="body") 
-        handle_2_pose = self.get_object_pose(obj_name=handle_names[1], obj_type="body") if len(handle_names) > 1 else np.zeros_like(handle_1_pose)
+        handle_1_pose = self.get_object_pose(obj_name=handle_names[0], obj_type=handle_type) 
+        handle_2_pose = self.get_object_pose(obj_name=handle_names[1], obj_type=handle_type) if len(handle_names) > 1 else np.zeros_like(handle_1_pose)
         return dict(
             handle_1=handle_1_pose,
             handle_2=handle_2_pose,
@@ -109,7 +110,7 @@ class MG_OpenMultipleDoor(RobosuiteInterface):
             subtask_term_signals (dict): dictionary that maps subtask name to termination flag (0 or 1)
         """
         signals = dict()
-        handle_bodies = self._get_handle_bodies()
+        handle_bodies, _ = self._get_handles()
 
         for door_num in [1, 2]:
             if door_num == 2 and len(handle_bodies) < 2:
@@ -141,7 +142,7 @@ class MG_OpenMultipleDoor(RobosuiteInterface):
             return False
 
         # Skip stage 0 if there is only one door
-        if stage_ind >= 2 and len(self._get_handle_bodies()) < 2:
+        if stage_ind >= 2 and len(self._get_handles()) < 2:
             return True
         
         return False
@@ -487,3 +488,97 @@ class MG_OpenCabinet(MG_OpenMultipleDoor):
     pass
 class MG_CloseCabinet(MG_CloseMultipleDoor):
     pass
+
+class MG_OpenFridge(MG_OpenMultipleDoor):
+    def _get_handles(self):
+        if len(self.env.fxtr._fridge_door_joint_names) > 1:
+            assert len(self.env.fxtr._fridge_door_joint_names) == 2, "Expecting fridge with two handles"
+            # arbitrarily get left then right
+            names =  [f"{self.env.fxtr.naming_prefix}fridge_left_door_handle_main", f"{self.env.fxtr.naming_prefix}fridge_right_door_handle_main"]
+        else:
+            names =  [f"{self.env.fxtr.naming_prefix}fridge_door_handle_main"]
+        return [find_elements(self.env.fxtr.worldbody, "geom", attribs={"name": name}) for name in names], "geom"
+    
+    def get_subtask_term_signals(self):
+        signals = dict()
+        handle_geoms_elems, _ = self._get_handles()
+        handle_geom_names = [e.get("name") for e in handle_geoms_elems]
+
+        for door_num in [1, 2]:
+            if door_num == 2 and len(handle_geom_names) < 2:
+                signals["stage_contact_handle_{}".format(door_num)] = -1
+                signals["stage_open_door_{}".format(door_num)] = -1
+                continue
+            contact_handle = self.env.check_contact(
+                self.env.robots[0].gripper["right"],
+                [handle_geom_names[door_num - 1]]
+            )
+
+            if len(handle_geom_names) > 1:
+                side = "left" if "left" in handle_geom_names[door_num - 1] else "right"
+                door_joint_name = f"{self.env.fxtr.naming_prefix}fridge_{side}_door_joint"
+            else:
+                door_joint_name = f"{self.env.fxtr.naming_prefix}fridge_door_joint"
+
+            # have to use Fixture class method because fridge overrident method does not allow
+            # for custom joint names
+            door_open =  Fixture.is_open(
+                self.env.fxtr,
+                self.env,
+                joint_names=[door_joint_name],
+            )
+            signals["stage_contact_handle_{}".format(door_num)] = int(contact_handle)
+            signals["stage_open_door_{}".format(door_num)] = int(door_open) # and robot_cleared_door)
+           
+        signals["success"] = int(self.env._check_success())        
+        return signals
+    
+class MG_CloseFridge(MG_CloseMultipleDoor):
+    def _get_door_bodies(self):
+        if len(self.env.fxtr._fridge_door_joint_names) > 1:
+            assert len(self.env.fxtr._fridge_door_joint_names) == 2, "Expecting fridge with two doors"
+            # arbitrarily get left then right
+            names =  [f"{self.env.fxtr.naming_prefix}fridge_left_door", f"{self.env.fxtr.naming_prefix}fridge_right_door"]
+        else:
+            names =  [f"{self.env.fxtr.naming_prefix}fridge_door"]
+        return [find_elements(self.env.fxtr.worldbody, "body", attribs={"name": name}) for name in names]
+    
+    def get_subtask_term_signals(self):
+
+        signals = dict()
+        door_bodies = self._get_door_bodies()
+        for door_num in [1, 2]:
+            if door_num == 2 and len(door_bodies) < 2:
+                signals["stage_contact_door_{}".format(door_num)] = -1
+                signals["stage_close_door_{}".format(door_num)] = -1
+                continue
+
+            door_geoms = find_elements(
+                door_bodies[door_num - 1],
+                tags="geom",
+                return_first=False
+            )
+            contact_door = self.env.check_contact(
+                self.env.robots[0].gripper["right"],
+                [e.get("name") for e in door_geoms]
+            )
+
+            if len(door_bodies) > 1:
+                side = "left" if "left" in door_bodies[door_num - 1].get("name") else "right"
+                door_joint_name = f"{self.env.fxtr.naming_prefix}fridge_{side}_door_joint"
+            else:
+                door_joint_name = f"{self.env.fxtr.naming_prefix}fridge_door_joint"
+
+            # have to use Fixture class method because fridge overrident method does not allow
+            # for custom joint names
+            door_closed =  Fixture.is_closed(
+                self.env.fxtr,
+                self.env,
+                joint_names=[door_joint_name],
+            )
+            signals["stage_contact_door_{}".format(door_num)] = int(contact_door)
+            signals["stage_close_door_{}".format(door_num)] = int(door_closed)
+        
+        signals["success"] = int(self.env._check_success())
+
+        return signals

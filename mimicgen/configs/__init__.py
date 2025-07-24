@@ -16,3 +16,4 @@ from mimicgen.configs.robocasa.single_stage.config_microwave import *
 from mimicgen.configs.robocasa.single_stage.config_toaster_oven import *
 from mimicgen.configs.robocasa.single_stage.config_stand_mixer import *
 from mimicgen.configs.robocasa.single_stage.config_electric_kettle import *
+from mimicgen.configs.robocasa.single_stage.config_toaster import *

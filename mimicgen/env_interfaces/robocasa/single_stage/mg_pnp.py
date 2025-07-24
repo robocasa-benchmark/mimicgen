@@ -380,3 +380,10 @@ class MG_PnPCounterToOven(RobosuiteInterface):
         signals["stage_contact_obj"] = int(contact_obj)
         signals["stage_place_obj"] = int(self.env._check_success())
         return signals
+
+class MG_PnPToasterToCounter(MG_PnPObjectToContainer):
+    def get_object_poses(self):
+        return dict(
+            obj=self.get_object_pose(obj_name=self.env.objects["obj"].root_body, obj_type="body"),
+            container=self.get_object_pose(obj_name=self.env.objects["plate"].root_body, obj_type="body"),
+        )
