@@ -150,7 +150,7 @@ def run_pipeline(
     extract_cmd = [
         "python",
         robocasa_path
-        / "robocasa/scripts/dataset_scripts/dataset_states_to_obs_rm.py",
+        / "robocasa/scripts/dataset_scripts/dataset_states_to_obs.py",
         "--dataset",
         str(generated_dataset),
         "--num_procs",
