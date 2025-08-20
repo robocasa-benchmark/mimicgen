@@ -108,3 +108,6 @@ class MG_TurnSinkSpout(RobosuiteInterface):
         signals["stage_contact_spout"] = int(contact_spout)
         signals["success"] = int(self.env._check_success())
         return signals
+
+class MG_AdjustWaterTemperature(MG_TurnOnSinkFaucet):
+    pass

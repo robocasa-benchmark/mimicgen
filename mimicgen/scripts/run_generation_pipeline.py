@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 SHARED_DATA_PTH = Path("/mnt/nfs_client/robocasa/datasets/v0.5")
-LOCAL_DATA_PTH = Path("/mnt/data1/abhim/robocasa/datasets/v0.5")
+LOCAL_DATA_PTH = Path("/home/abhim/robocasa/datasets/v0.5")
 MG_PATH = Path("/home/abhim/robocasa/mimicgen-dev")
 ROBOCASA_PATH = Path("/home/abhim/robocasa/robocasa-dev")
 

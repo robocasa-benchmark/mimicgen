@@ -1,4 +1,5 @@
 from mimicgen.env_interfaces.robosuite import RobosuiteInterface
+from mimicgen.env_interfaces.robocasa.single_stage.mg_drawer import MG_SlideRack
 from robosuite.utils.mjcf_utils import find_elements
 
 
@@ -86,3 +87,7 @@ class MG_AdjustToasterOvenTemperature(RobosuiteInterface):
         signals["success"] = int(self.env._check_success())
 
         return signals
+
+class MG_SlideToasterOvenRack(MG_SlideRack):
+    def get_rack_name(self):
+        return self.env.toaster_oven.naming_prefix + self.env.chosen_toaster_receptacle

@@ -73,3 +73,39 @@ class MG_CloseDrawer(RobosuiteInterface):
         signals["stage_contact_drawer"] = int(contact_drawer)
         signals["success"] = int(self.env._check_success())
         return signals
+
+
+class MG_SlideRack(RobosuiteInterface):
+    def get_rack_name(self):
+        raise NotImplementedError("This method should be implemented in subclasses.")
+    
+    def get_object_poses(self):
+        rack_name = self.get_rack_name()
+        return dict(
+            rack=self.get_object_pose(obj_name=rack_name, obj_type="body"),
+        )
+    
+    def get_subtask_term_signals(self):
+        signals = dict()
+        rack_body = find_elements(
+            self.env.model.worldbody,
+            tags="body",
+            attribs={"name": self.get_rack_name()},
+            return_first=True,
+        )
+        rack_geoms = find_elements(rack_body, tags="geom", return_first=False)
+        rack_geom_names = [e.get("name") for e in rack_geoms]
+        check_contact = self.env.check_contact(
+            self.env.robots[0].gripper["right"],
+            rack_geom_names,
+        )
+        signals["stage_contact_rack"] = int(check_contact)
+        signals["success"] = int(self.env._check_success())
+        return signals
+
+
+class MG_SlideDishwasherRack(MG_SlideRack):
+    def get_rack_name(self):
+        return self.env.dishwasher.name + "_rack1"
+
+    

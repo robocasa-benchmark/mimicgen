@@ -377,3 +377,7 @@ class PnPCounterToOven_Config(MG_Config):
 
 class PnPToasterToCounter_Config(PnPObjectToContainer_Config):
     NAME = "PnPToasterToCounter"
+
+class PnPDrawerToCounter_Config(PnPCabinetToCounter_Config):
+    NAME = "PnPDrawerToCounter"
+    TYPE = "robosuite"

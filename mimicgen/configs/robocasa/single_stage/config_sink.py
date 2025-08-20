@@ -91,3 +91,7 @@ class TurnSinkSpout_Config(MG_Config):
             selection_strategy_kwargs=dict(nn_k=5),
         )
         self.task.task_spec.do_not_lock_keys() # allow downstream code to completely replace the task spec
+    
+class AdjustWaterTemperature_Config(TurnOnSinkFaucet_Config):
+    NAME = "AdjustWaterTemperature"
+    TYPE = "robosuite"

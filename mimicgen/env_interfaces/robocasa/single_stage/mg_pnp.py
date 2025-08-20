@@ -387,3 +387,6 @@ class MG_PnPToasterToCounter(MG_PnPObjectToContainer):
             obj=self.get_object_pose(obj_name=self.env.objects["obj"].root_body, obj_type="body"),
             container=self.get_object_pose(obj_name=self.env.objects["plate"].root_body, obj_type="body"),
         )
+
+class MG_PnPDrawerToCounter(MG_PnPCabinetToCounter):
+    pass
