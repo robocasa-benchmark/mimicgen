@@ -108,4 +108,41 @@ class MG_SlideDishwasherRack(MG_SlideRack):
     def get_rack_name(self):
         return self.env.dishwasher.name + "_rack1"
 
+class MG_FridgeDrawer(RobosuiteInterface):
+
+    def get_drawer_name(self):
+        num_fridge_drawers = len(self.env.fridge._get_drawer_joints(compartment="fridge"))
+        assert num_fridge_drawers > 0, "No fridge drawers found in the environment."
+        # task always chooses the highest up drawer which corresponds to the drawer with the highest index
+        drawer_num = num_fridge_drawers - 1 
+        return f"{self.env.fridge.naming_prefix}fridge_drawer{drawer_num}"
+
+    def get_object_poses(self):
+        drawer_body_name = self.get_drawer_name()
+        return dict(
+            drawer=self.get_object_pose(obj_name=drawer_body_name, obj_type="body"),
+        )
     
+    def get_subtask_term_signals(self):
+        signals = dict()
+        drawer_body = find_elements(
+            self.env.model.worldbody,
+            tags="body",
+            attribs={"name": self.get_drawer_name()},
+            return_first=True,
+        )
+        drawer_geoms = find_elements(drawer_body, tags="geom", return_first=False)
+        drawer_geom_names = [e.get("name") for e in drawer_geoms]
+        check_contact = self.env.check_contact(
+            self.env.robots[0].gripper["right"],
+            drawer_geom_names,
+        )
+        signals["stage_contact_drawer"] = int(check_contact)
+        signals["success"] = int(self.env._check_success())
+        return signals
+
+class MG_OpenFridgeDrawer(MG_FridgeDrawer):
+    pass
+
+class MG_CloseFridgeDrawer(MG_FridgeDrawer):
+    pass
