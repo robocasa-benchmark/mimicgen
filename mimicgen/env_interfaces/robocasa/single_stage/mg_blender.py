@@ -18,11 +18,19 @@ class MG_ManipulateBlenderLid(RobosuiteInterface):
 
     def get_subtask_term_signals(self):
         signals = dict()
-        contact_handle = self.env.check_contact(
-            self.env.robots[0].gripper["right"],
-            self.get_lid_handle_name(),
+        lid_body = find_elements(
+            self.env.model.worldbody,
+            tags="body",
+            attribs={"name": self.env.blender.blender_lid.naming_prefix + "main"},
+            return_first=True,
         )
-        signals["stage_contact_lid_handle"] = int(contact_handle)
+        lid_geoms = find_elements(lid_body, tags="geom", return_first=False)
+        lid_geom_names = [e.get("name") for e in lid_geoms]
+        contact_lid = self.env.check_contact(
+            self.env.robots[0].gripper["right"],
+            lid_geom_names,
+        )
+        signals["stage_contact_lid"] = int(contact_lid)
         signals["success"] = int(self.env._check_success())
         return signals
 
@@ -30,7 +38,10 @@ class MG_OpenBlenderLid(MG_ManipulateBlenderLid):
     pass
 
 class MG_CloseBlenderLid(MG_ManipulateBlenderLid):
-    pass
+    def get_object_poses(self):
+        signals = super().get_object_poses()
+        signals["blender"] = self.get_object_pose(f"{self.env.blender.naming_prefix}reg_main", obj_type="geom")
+        return signals
 
 class MG_TurnOnBlender(RobosuiteInterface):
 
